@@ -273,6 +273,7 @@ type column struct {
 	Nullable      string
 	TableName     string
 	ColumnComment string
+	ColumnKey     string
 	Tag           string
 }
 
@@ -287,7 +288,7 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 	}
 	tableColumns = make(map[string][]column)
 	// sql
-	var sqlStr = `SELECT COLUMN_NAME,DATA_TYPE,IS_NULLABLE,TABLE_NAME,COLUMN_COMMENT
+	var sqlStr = `SELECT COLUMN_NAME,DATA_TYPE,IS_NULLABLE,TABLE_NAME,COLUMN_COMMENT,COLUMN_KEY
 		FROM information_schema.COLUMNS 
 		WHERE table_schema = DATABASE()`
 	// 是否指定了具体的table
@@ -319,6 +320,7 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 		col.ColumnComment = col.ColumnComment
 		col.ColumnName = t.camelCase(col.ColumnName)
 		col.Type = typeForMysqlToGo[col.Type]
+
 		jsonTag := col.Tag
 		// 字段首字母本身大写, 是否需要删除tag
 		if t.config.RmTagIfUcFirsted &&
@@ -335,20 +337,21 @@ func (t *Table2Struct) getColumns(table ...string) (tableColumns map[string][]co
 				jsonTag = t.camelCase(jsonTag)
 			}
 
-			//if col.Nullable == "YES" {
-			//	col.Json = fmt.Sprintf("`json:\"%s,omitempty\"`", col.Json)
-			//} else {
-			//}
 		}
 		if t.tagKey == "" {
 			t.tagKey = "orm"
 		}
+		if col.ColumnKey == "PRI" {
+			col.Tag = fmt.Sprintf("`%s:\"primaryKey\"`", t.tagKey)
+		}
+
 		if t.enableJsonTag {
 			//col.Json = fmt.Sprintf("`json:\"%s\" %s:\"%s\"`", col.Json, t.config.TagKey, col.Json)
 			col.Tag = fmt.Sprintf("`%s:\"%s\" json:\"%s\"`", t.tagKey, col.Tag, jsonTag)
 		} else {
 			col.Tag = fmt.Sprintf("`%s:\"%s\"`", t.tagKey, col.Tag)
 		}
+
 		//columns = append(columns, col)
 		if _, ok := tableColumns[col.TableName]; !ok {
 			tableColumns[col.TableName] = []column{}
