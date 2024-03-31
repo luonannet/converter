@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/gohouse/converter"
 	"log"
+
+	"github.com/gohouse/converter"
 )
 
 func main() {
@@ -19,8 +19,6 @@ func parser() {
 	packageName := flag.String("packageName", "model", "生成的struct包名")
 	tagKey := flag.String("tagKey", "orm", "字段tag的key")
 	prefix := flag.String("prefix", "", "表前缀")
-	version := flag.Bool("version", false, "版本号")
-	v := flag.Bool("v", false, "版本号")
 	enableJsonTag := flag.Bool("enableJsonTag", false, "是否添加json的tag,默认false")
 	h := flag.Bool("h", false, "帮助")
 	help := flag.Bool("help", false, "帮助")
@@ -30,13 +28,6 @@ func parser() {
 
 	if *h || *help {
 		flag.Usage()
-		return
-	}
-
-	// 版本号
-	if *version || *v {
-		fmt.Println(fmt.Sprintf("\n version: %s\n %s\n using -h param for more help \n",
-			converter.VERSION, converter.VERSION_TEXT))
 		return
 	}
 
