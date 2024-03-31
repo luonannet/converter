@@ -1,4 +1,4 @@
-module gitee.com/luonannet/converter
+module github.com/luonannet/converter
 
 go 1.22.1
 
