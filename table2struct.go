@@ -12,7 +12,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-//map for converting mysql type to golang types
+// map for converting mysql type to golang types
 var typeForMysqlToGo = map[string]string{
 	"int":                "int64",
 	"integer":            "int64",
@@ -172,16 +172,6 @@ func (t *Table2Struct) Run() error {
 			structName = t.camelCase(structName)
 		}
 
-		/*
-		switch len(tableName) {
-		case 0:
-		case 1:
-			tableName = strings.ToUpper(tableName[0:1])
-		default:
-			// 字符长度大于1时
-			tableName = strings.ToUpper(tableName[0:1]) + tableName[1:]
-		}
-		*/
 		tableName = t.camelCase(tableName)
 		depth := 1
 		structContent += "type " + structName + " struct {\n"
@@ -205,37 +195,61 @@ func (t *Table2Struct) Run() error {
 				tab(depth), tableRealName)
 			structContent += "}\n\n"
 		}
+
+		if t.config.SeperatFile {
+			// 如果有引入 time.Time, 则需要引入 time 包
+			var importContent string
+			if strings.Contains(structContent, "time.Time") {
+				importContent = "import \"time\"\n\n"
+			}
+
+			// 添加json类型支持
+			if strings.Contains(structContent, "json.RawMessage") {
+				importContent += "import \"encoding/json\"\n\n"
+			}
+
+			// 写入文件struct
+			var savePath = t.savePath + tableName + ".go"
+
+			filePath := fmt.Sprintf("%s", savePath)
+			f, err := os.Create(filePath)
+			if err != nil {
+				log.Println("Can not write file")
+				return err
+			}
+			defer f.Close()
+			f.WriteString(packageName + importContent + structContent)
+			cmd := exec.Command("gofmt", "-w", filePath)
+			cmd.Run()
+		}
 	}
 
-	// 如果有引入 time.Time, 则需要引入 time 包
-	var importContent string
-	if strings.Contains(structContent, "time.Time") {
-		importContent = "import \"time\"\n\n"
-	}
+	if !t.config.SeperatFile {
+		// 如果有引入 time.Time, 则需要引入 time 包
+		var importContent string
+		if strings.Contains(structContent, "time.Time") {
+			importContent = "import \"time\"\n\n"
+		}
 
-	// 添加json类型支持
-	if strings.Contains(structContent, "json.RawMessage") {
-		importContent += "import \"encoding/json\"\n\n"
-	}
+		// 添加json类型支持
+		if strings.Contains(structContent, "json.RawMessage") {
+			importContent += "import \"encoding/json\"\n\n"
+		}
 
-	// 写入文件struct
-	var savePath = t.savePath
-	// 是否指定保存路径
-	if savePath == "" {
-		savePath = "model.go"
-	}
-	filePath := fmt.Sprintf("%s", savePath)
-	f, err := os.Create(filePath)
-	if err != nil {
-		log.Println("Can not write file")
-		return err
-	}
-	defer f.Close()
+		// 写入文件struct
+		var savePath = t.savePath + "table.go"
 
-	f.WriteString(packageName + importContent + structContent)
-
-	cmd := exec.Command("gofmt", "-w", filePath)
-	cmd.Run()
+		filePath := fmt.Sprintf("%s", savePath)
+		f, err := os.Create(filePath)
+		if err != nil {
+			log.Println("Can not write file")
+			return err
+		}
+		defer f.Close()
+		f.WriteString(packageName + importContent + structContent)
+		cmd := exec.Command("gofmt", "-w", filePath)
+		cmd.Run()
+	}
 
 	log.Println("gen model finish!!!")
 
